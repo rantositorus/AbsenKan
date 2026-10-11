@@ -1,0 +1,56 @@
+# Produksi: MySQL + backend (NestJS) + frontend (nginx)
+# Jalankan: MYSQL_PASSWORD=... JWT_SECRET=... docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: absenkan
+      MYSQL_USER: absenkan
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-absenkan}
+      TZ: UTC
+    volumes:
+      - absenkan_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uabsenkan", "-p${MYSQL_PASSWORD:-absenkan}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_PREFIX: api
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: absenkan
+      DB_PASSWORD: ${MYSQL_PASSWORD:-absenkan}
+      DB_NAME: absenkan
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib di-set}
+      JWT_EXPIRES_IN: 8h
+      UPLOAD_DIR: ./uploads
+    volumes:
+      - absenkan_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+volumes:
+  absenkan_mysql_data:
+  absenkan_uploads:

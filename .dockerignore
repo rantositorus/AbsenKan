@@ -1,0 +1,15 @@
+# Kecepatan build + hindari kebocoran
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.data
+*.log
+.env
+.env.*
+!.env.example
+coverage
+# Direktori data upload runtime (volume menyediakan di produksi).
+# JANGAN pakai pola "**/uploads" — itu ikut mengecualikan source src/uploads.
+backend/uploads
